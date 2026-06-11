@@ -1,0 +1,174 @@
+import os
+import tempfile
+
+import cv2
+import numpy as np
+import requests
+
+import sys
+import os
+
+# This line finds the path to your project root (gate_sytem_entry/) 
+# and adds it to Python's system path.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+# Now, absolute imports work!
+from database import get_all_employee_embeddings
+from modules.enroll.enroll import get_face_app
+
+
+MATCH_THRESHOLD = 0.50
+
+FRAME_SKIP = 5
+
+
+def _load_known_embeddings():
+    database_rows = get_all_employee_embeddings()
+
+    known_embeddings = {}
+
+    for employee_id, embedding in database_rows:
+        arr = np.array(embedding) if isinstance(embedding, list) else np.array(eval(embedding))
+        known_embeddings.setdefault(employee_id, []).append(arr)
+
+    return known_embeddings
+
+
+
+def run_person_logic(frame_queue, person_data_queue):
+    print("loading embedding from database")
+    known_embeddings = _load_known_embeddings()
+    model = get_face_app()
+    frame_count = 0
+    last_seen = {}
+    
+    print("Person recognition worker started")
+    
+    while True:
+        frame = frame_queue.get()
+        if frame is None: break
+        
+        frame_count += 1
+        if frame_count % FRAME_SKIP != 0:
+            continue
+        
+        faces = model.get(frame)
+        
+        for face in faces:
+            embedding = face.normed_embedding
+            best_match_id = None
+            best_match_score = -1.0
+            
+            for employee_id, embs in known_embeddings.items():
+                for stored_emb in embs:
+                    similarity = np.dot(embedding, stored_emb)
+                    if similarity > best_match_score:
+                        best_match_score = similarity
+                        best_match_id = employee_id
+                        
+            if best_match_score > MATCH_THRESHOLD:
+                if best_match_id in last_seen and (cv2.getTickCount() - last_seen[best_match_id]) / cv2.getTickFrequency() < 1:
+                    print(f"Employee {best_match_id} seen again with score {best_match_score}")
+                    continue
+                
+                last_seen[best_match_id] = cv2.getTickCount()
+                x1, y1, x2, y2 = map(int, face.bbox)
+                print(f"Recognized employee {best_match_id} with score {best_match_score}")
+                person_data_queue.put({
+                    "employee_id": best_match_id,
+                    "score": best_match_score,
+                    "bbox": [x1, y1, x2, y2]
+                })
+                
+
+
+
+
+
+
+
+
+
+
+
+# def start_live_recognition(camera_source=0):
+#     print("loading embedding from database")
+#     known_embeddings = _load_known_embeddings()
+
+#     print("starting video capture")
+#     total_embeddings = sum(len(employee_embeddings) for employee_embeddings in known_embeddings.values())
+#     print(f"loaded {len(known_embeddings)} employees with {total_embeddings} embeddings from database")
+    
+#     model = get_face_app()
+    
+#     video = cv2.VideoCapture(camera_source)
+    
+#     if not video.isOpened():
+#         print("Could not open video source")
+#         return
+    
+#     frame_count = 0
+    
+#     last_seen = {}
+    
+#     while True:
+#         ret, frame = video.read()
+        
+#         if not ret:
+#             print("Could not read frame from video source")
+#             break
+        
+#         frame_count += 1
+        
+#         if frame_count % FRAME_SKIP != 0:
+#             continue
+        
+#         faces = model.get(frame)
+        
+#         for face in faces:
+#             embedding = face.normed_embedding
+            
+#             best_match_id = None
+#             best_match_score = -1.0
+            
+#             for employee_id, employee_embeddings in known_embeddings.items():
+#                 for stored_embedding in employee_embeddings:
+#                     # i think we have to convert stored_embedding to numpy array here as they are in strings
+#                     similarity = np.dot(embedding, stored_embedding)
+
+#                     if similarity > best_match_score:
+#                         best_match_score = similarity
+#                         best_match_id = employee_id
+            
+#             if best_match_score > MATCH_THRESHOLD:
+                
+#                 if best_match_id in last_seen and (cv2.getTickCount() - last_seen[best_match_id]) / cv2.getTickFrequency() < 1:
+#                     print(f"Employee {best_match_id} seen again with score {best_match_score}")
+#                     continue
+                
+                
+#                 last_seen[best_match_id] = cv2.getTickCount()
+                
+#                 print(f"Recognized employee {best_match_id} with score {best_match_score}")
+                
+#                 x1, y1, x2, y2 = map(int, face.bbox)
+#                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+#                 cv2.putText(frame, f"{best_match_id} ({best_match_score:.2f})", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                
+#         cv2.imshow("Live Recognition", frame)
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+        
+#         # Remove employees not seen for a while
+#         current_time = cv2.getTickCount()
+#         to_remove = []
+        
+#         for employee_id, last_seen_time in last_seen.items():
+#             if (current_time - last_seen_time) / cv2.getTickFrequency() > 5:  # 5 seconds timeout
+#                 to_remove.append(employee_id)
+        
+#         for employee_id in to_remove:
+#             del last_seen[employee_id]
+            
+#     video.release()
+#     cv2.destroyAllWindows()

@@ -1,0 +1,3 @@
+from recognize import start_live_recognition
+
+start_live_recognition(0)
