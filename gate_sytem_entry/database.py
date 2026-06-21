@@ -246,7 +246,65 @@ def get_all_employee_embeddings():
 
     return rows
 
+def save_recognition_event(
+    employee_id,
+    confidence,
+    camera_type="ENTRY"
+):
+    conn = get_db_connection()
 
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO recognition_events (
+            employee_id,
+            confidence,
+            camera_type
+        )
+        VALUES (%s, %s, %s)
+        """,
+        (
+            employee_id,
+            confidence,
+            camera_type
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+def save_recognition_event(
+    employee_id,
+    confidence,
+    camera_type="ENTRY"
+):
+    conn = get_db_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO recognition_events (
+            employee_id,
+            confidence,
+            camera_type
+        )
+        VALUES (%s, %s, %s)
+        """,
+        (
+            employee_id,
+            confidence,
+            camera_type
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
 def update_entry_plate(entry_id, plate_number):
     conn = get_db_connection()
@@ -560,7 +618,37 @@ def complete_visit(visit_id):
     finally:
         if conn: conn.close()
         
-        
+def delete_employee(employee_id):
+    conn = get_db_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM employee_embeddings
+        WHERE employee_id = %s
+        """,
+        (employee_id,)
+    )
+
+    cursor.execute(
+        """
+        DELETE FROM employees
+        WHERE employee_id = %s
+        """,
+        (employee_id,)
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return {
+        "status": "success",
+        "employeeId": employee_id
+    }
+    
 def save_exit_record(visit_id, employee_id, vehicle_embedding, vehicle_class, plate_number, 
                      face_verified, vehicle_verified, plate_verified, gate_opened, camera_id):
     conn = None

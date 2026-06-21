@@ -19,12 +19,12 @@ face_app = None
 MODEL_HOME = os.path.join(os.path.dirname(__file__), "insightface_models")
 MODEL_ROOT = os.path.join(MODEL_HOME, "models")
 MODEL_CANDIDATES = (
-    "buffalo_m",
     "buffalo_l",
+    "buffalo_m",
 )
 MODEL_PACK_URLS = {
-    "buffalo_m": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
     "buffalo_l": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
+    "buffalo_m": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
 }
 
 

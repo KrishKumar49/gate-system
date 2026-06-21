@@ -23,8 +23,15 @@ VOTING_WINDOW_SIZE = 10
 
 
 
-def run_plate_logic(frame_queue, entry_id_queue):
+def run_plate_logic(frame_queue, entry_id_queue, ready_event=None):
     print("plate recognition worker started")
+    # signal readiness to the parent process
+    if ready_event is not None:
+        try:
+            print("Plate worker ready")
+            ready_event.set()
+        except Exception:
+            pass
     plate_votes = Counter()
     plate_window = deque()
     last_logged_plate = None
@@ -52,10 +59,11 @@ def run_plate_logic(frame_queue, entry_id_queue):
             pass
                       
         frame = frame_queue.get()
+        print("Plate worker received frame")
         if frame is None: break
         
         detections = alpr.predict(frame)
-        
+        print("Plate detections:", len(detections))
         for det in detections:
             ocr = getattr(det, 'ocr', None)
             txt = getattr(ocr, 'text', '') if ocr is not None else ''

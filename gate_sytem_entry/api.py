@@ -5,6 +5,7 @@ import multiprocessing
 
 from modules.enroll.enroll import enroll_employee
 from monitor import start_gate_monitoring
+from database import delete_employee
 
 from monitor_exit import start_exit_monitoring as run_exit_monitoring
 
@@ -62,6 +63,9 @@ def enroll(data: EnrollRequest):
 
     return result
 
+@app.delete("/employee/{employee_id}")
+def remove_employee(employee_id: str):
+    return delete_employee(employee_id)
 
 @app.post("/start_exit_monitoring")
 def start_exit_monitoring():

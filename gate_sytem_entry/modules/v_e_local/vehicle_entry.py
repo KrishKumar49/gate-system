@@ -295,9 +295,14 @@ def run_vehicle_entry_logic(vehicle_frame_queue, entry_id_queue, person_data_que
                 logger.info(f"Updated current employee context: {current_employee_id} with visit ID: {current_visit_id}")
                 
         frame = vehicle_frame_queue.get()
+        print("Vehicle worker received frame")
         if frame is None: break
         
         results = detector.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
+        print("Boxes:", results.boxes)
+
+        if results.boxes is not None:
+            print("Detected classes:", results.boxes.cls)
         
                 
         

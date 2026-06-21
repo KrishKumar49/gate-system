@@ -15,11 +15,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 # Now, absolute imports work!
 from database import get_all_employee_embeddings
 from modules.enroll.enroll import get_face_app
+from database import (
+    get_all_employee_embeddings,
+    save_recognition_event
+)
+from modules.enroll.enroll import get_face_app
 
-
-MATCH_THRESHOLD = 0.50
-
-FRAME_SKIP = 5
+MATCH_THRESHOLD = 0.40
+FRAME_SKIP = 2
+RECOGNITION_COOLDOWN = 60  # seconds
 
 
 def _load_known_embeddings():
@@ -28,57 +32,152 @@ def _load_known_embeddings():
     known_embeddings = {}
 
     for employee_id, embedding in database_rows:
-        arr = np.array(embedding) if isinstance(embedding, list) else np.array(eval(embedding))
-        known_embeddings.setdefault(employee_id, []).append(arr)
+        arr = (
+            np.array(embedding)
+            if isinstance(embedding, list)
+            else np.array(eval(embedding))
+        )
+
+        known_embeddings.setdefault(
+            employee_id,
+            []
+        ).append(arr)
 
     return known_embeddings
 
 
+def run_person_logic(
+    frame_queue,
+    person_data_queue,
+    ready_event=None
+):
+    print("Loading embeddings from database")
 
-def run_person_logic(frame_queue, person_data_queue):
-    print("loading embedding from database")
     known_embeddings = _load_known_embeddings()
+
+    print(
+        "Known employees:",
+        known_embeddings.keys()
+    )
+
+    for emp, embs in known_embeddings.items():
+        print(emp, len(embs))
+
     model = get_face_app()
+
+    if ready_event is not None:
+        print("Person worker ready")
+        ready_event.set()
+
     frame_count = 0
     last_seen = {}
-    
+
     print("Person recognition worker started")
-    
+
     while True:
+
         frame = frame_queue.get()
-        if frame is None: break
-        
+
+        print("Person worker received frame")
+
+        if frame is None:
+            break
+
         frame_count += 1
+
         if frame_count % FRAME_SKIP != 0:
             continue
-        
+
         faces = model.get(frame)
-        
+
+        print(
+            f"Faces detected: {len(faces)}"
+        )
+
         for face in faces:
+
             embedding = face.normed_embedding
+
             best_match_id = None
             best_match_score = -1.0
-            
-            for employee_id, embs in known_embeddings.items():
+
+            for (
+                employee_id,
+                embs
+            ) in known_embeddings.items():
+
                 for stored_emb in embs:
-                    similarity = np.dot(embedding, stored_emb)
+
+                    similarity = np.dot(
+                        embedding,
+                        stored_emb
+                    )
+
                     if similarity > best_match_score:
                         best_match_score = similarity
                         best_match_id = employee_id
-                        
-            if best_match_score > MATCH_THRESHOLD:
-                if best_match_id in last_seen and (cv2.getTickCount() - last_seen[best_match_id]) / cv2.getTickFrequency() < 1:
-                    print(f"Employee {best_match_id} seen again with score {best_match_score}")
-                    continue
-                
-                last_seen[best_match_id] = cv2.getTickCount()
-                x1, y1, x2, y2 = map(int, face.bbox)
-                print(f"Recognized employee {best_match_id} with score {best_match_score}")
-                person_data_queue.put({
-                    "employee_id": best_match_id,
-                    "score": best_match_score,
-                    "bbox": [x1, y1, x2, y2]
-                })
+
+            print(
+                f"Best match = {best_match_id}, "
+                f"Score = {best_match_score:.4f}, "
+                f"Threshold = {MATCH_THRESHOLD}"
+            )
+
+            if best_match_score <= MATCH_THRESHOLD:
+                continue
+
+            current_time = (
+                cv2.getTickCount()
+                / cv2.getTickFrequency()
+            )
+
+            if (
+                best_match_id in last_seen
+                and
+                current_time
+                - last_seen[best_match_id]
+                < RECOGNITION_COOLDOWN
+            ):
+                print(
+                    f"Employee {best_match_id} "
+                    f"already logged recently"
+                )
+                continue
+
+            last_seen[best_match_id] = current_time
+
+            x1, y1, x2, y2 = map(
+                int,
+                face.bbox
+            )
+
+            print(
+                f"Recognized employee "
+                f"{best_match_id} "
+                f"with score "
+                f"{best_match_score:.4f}"
+            )
+
+            save_recognition_event(
+                employee_id=best_match_id,
+                confidence=float(
+                    best_match_score
+                ),
+                camera_type="ENTRY"
+            )
+
+            person_data_queue.put({
+                "employee_id": best_match_id,
+                "score": float(
+                    best_match_score
+                ),
+                "bbox": [
+                    x1,
+                    y1,
+                    x2,
+                    y2
+                ]
+            })
                 
 
 
