@@ -112,187 +112,63 @@ def _resolve_visit_id(employee_id, visit_id):
     return None
 
 
-# def start_live_vehicle_entry(
-#     source=0,
-#     # frame_skip=5,
-#     max_frames=None,
-#     show_window=False,
-#     persist=False,
-#     employee_id=None,
-#     visit_id=None,
-#     camera_id=None,
-# ):
-#     cap = cv2.VideoCapture(source)
-#     if not cap.isOpened():
-#         logger.error("Could not open video source %s", source)
-#         return
-
-#     logger.info("Processing source with ByteTrack: %s", source)
-#     resolved_visit_id = _resolve_visit_id(employee_id, visit_id)
-#     if persist and not resolved_visit_id:
-#         logger.warning("Persistence is enabled but no visit_id could be resolved.")
-
-#     frame_count = 0
-#     processed = 0
-#     saved_detections = 0
+def run_vehicle_entry_logic(
+    vehicle_frame_queue, 
+    entry_id_queue, 
+    person_data_queue,
+    ready_event=None, 
+    # employee_id=None, 
+    # visit_id=None, 
+    camera_id=None
+):
+    print("VEHICLE WORKER STARTED")
+    print("VEHICLE ENTRY QUEUE ID: ", id(person_data_queue))
+    if ready_event is not None:
+        ready_event.set()
+        print("Vehicle worker ready")
     
-#     tracked_vehicles = {}
-#     VALID_CLASSES = {3}
-#     MIN_EMBEDDINGS_TO_SAVE = 15
-#     MAX_EMBEDDINGS = 30
-#     STALE_TRACK_FRAMES = 90
-
-#     def save_track_if_ready(track_id):
-#         nonlocal saved_detections
-
-#         track_data = tracked_vehicles.get(track_id)
-#         if not track_data or track_data["saved"]:
-#             return
-
-#         if len(track_data["embeddings"]) < MIN_EMBEDDINGS_TO_SAVE:
-#             return
-
-#         mean_embedding = np.mean(track_data["embeddings"], axis=0)
-#         norm = np.linalg.norm(mean_embedding)
-#         if norm == 0:
-#             logger.warning("Skipping track %s because mean embedding norm is zero", track_id)
-#             return
-
-#         mean_embedding = mean_embedding / norm
-
-#         try:
-#             entry_id = save_vehicle_entry_record(
-#                 employee_id=employee_id,
-#                 visit_id=resolved_visit_id,
-#                 vehicle_embedding=mean_embedding,
-#                 vehicle_class=track_data["vehicle_class"],
-#                 plate_number=None,
-#                 camera_id=camera_id,
-#             )
-#             track_data["saved"] = True
-#             saved_detections += 1
-#             logger.info("Saved track %s as entry record id=%s", track_id, entry_id)
-#         except Exception as exc:
-#             logger.exception("Failed to save vehicle entry record for track %s: %s", track_id, exc)
-
-#     while True:
-#         ret, frame = cap.read()
-        
-#         # --- ADD THIS: Reconnection Logic ---
-#         if not ret:
-#             logger.warning("Stream disconnected! Attempting to reconnect to %s...", source)
-#             time.sleep(5)  # Wait 5 seconds before retrying
-#             cap.release()
-#             cap = cv2.VideoCapture(source)
-#             continue
-#         # ------------------------------------
-
-#         frame_count += 1
-#         # if frame_skip and (frame_count % frame_skip) != 0:
-#         #     continue
-
-#         processed += 1
-
-#         try:
-#             # 🚀 Native Ultralytics ByteTrack invocation
-#             results = detector.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
-            
-#             if results.boxes is not None and results.boxes.id is not None:
-#                 box_ids = results.boxes.id.int().cpu().tolist()
-#                 xyxy_coords = results.boxes.xyxy.int().cpu().tolist()
-#                 cls_indices = results.boxes.cls.int().cpu().tolist()
-
-#                 for idx, track_id in enumerate(box_ids):
-#                     cls_id = cls_indices[idx]
-#                     if cls_id not in VALID_CLASSES:
-#                         continue
-
-#                     x1, y1, x2, y2 = xyxy_coords[idx]
-#                     crop = frame[max(0, y1):y2, max(0, x1):x2]
-
-#                     if crop.size == 0:
-#                         continue
-
-#                     if track_id not in tracked_vehicles:
-#                         tracked_vehicles[track_id] = {
-#                             "embeddings": [],
-#                             "last_seen": frame_count,
-#                             "saved": False,
-#                             "vehicle_class": results.names[cls_id],
-#                         }
-
-#                     tracked_vehicles[track_id]["last_seen"] = frame_count
-#                     tracked_vehicles[track_id]["vehicle_class"] = results.names[cls_id]
-
-#                     if tracked_vehicles[track_id]["saved"]:
-#                         continue
-
-#                     if frame_count % 3 == 0:
-#                         embedding = get_vehicle_embedding(crop)
-#                     else:
-#                         embedding = None
-                        
-#                     if (
-#                         embedding is not None
-#                         and len(tracked_vehicles[track_id]["embeddings"]) < MAX_EMBEDDINGS
-#                     ):
-#                         tracked_vehicles[track_id]["embeddings"].append(embedding)
-
-#                     if (
-#                         not tracked_vehicles[track_id]["saved"]
-#                         and len(tracked_vehicles[track_id]["embeddings"]) >= MIN_EMBEDDINGS_TO_SAVE
-#                         and persist
-#                         and resolved_visit_id
-#                         and employee_id
-#                     ):
-#                         save_track_if_ready(track_id)
-#         except Exception as e:
-#             logger.exception("Tracking evaluation step error: %s", e)
-
-#         if frame_count % 30 == 0:
-#             tracked_vehicles = {
-#                 tid: data
-#                 for tid, data in tracked_vehicles.items()
-#                 if frame_count - data["last_seen"] <= STALE_TRACK_FRAMES
-#             }
-
-#         if max_frames and processed >= max_frames:
-#             logger.info("Reached max processed frames: %s", max_frames)
-#             break
-
-#     cap.release()
-
-#     logger.info("Vehicle entry run complete: processed=%s saved=%s", processed, saved_detections)
-
-
-
-
-
-def run_vehicle_entry_logic(vehicle_frame_queue, entry_id_queue, person_data_queue, employee_id=None, visit_id=None, camera_id=None):
     logger.info("Starting vehicle entry logic")
-    resolved_visit_id = _resolve_visit_id(employee_id, visit_id)
+    # resolved_visit_id = _resolve_visit_id(employee_id, visit_id)
     
     tracked_vehicles = {}
-    MIN_EMBEDDINGS_TO_SAVE = 15
+    MIN_EMBEDDINGS_TO_SAVE = 3
     STALE_TRACK_FRAMES = 15.0
     
-    if not resolved_visit_id:
-        logger.warning("No visit context available for vehicle entry; detected vehicles will not be saved to database.")
+    # if not resolved_visit_id:
+    #     logger.warning("No visit context available for vehicle entry; detected vehicles will not be saved to database.")
     
-    
+    logger.info("Waiting for person recognition context...")
     last_cleanup_time = time.time()
     
     current_employee_id = None
     current_visit_id = None
     
+    print("VEHICLE QUEUE OBJECT ", entry_id_queue)
+    
     while True:
-        while not person_data_queue.empty():
-            data = person_data_queue.get()
-            new_emp_id = data.get("employee_id")
-            if new_emp_id != current_employee_id:
-                current_employee_id = new_emp_id
-                current_visit_id = get_active_visit_id(current_employee_id)
-                logger.info(f"Updated current employee context: {current_employee_id} with visit ID: {current_visit_id}")
+        try:
+            while current_employee_id is None:
+                try:
+                    print("WAITING FOR PERSON DATA...")
+                    print("QUEUE SIZE =", person_data_queue.qsize())
+                    
+                    data = person_data_queue.get(timeout=1)
+                    print("RAW DATA RECEIVED =", data)
+                    print("WAITING FOR PERSON DATA")
+                    
+                    current_employee_id = data.get("employee_id")
+                    current_visit_id = data.get("visit_id")
+                    
+                    print(
+                        f"RECEIVED PERSON CONTEXT -> "
+                        f"emp={current_employee_id}, "
+                        f"visit={current_visit_id}"
+                    )
+                except Exception as e:
+                    print("NO PERSON DATA: ", e)
+                    continue
+        except Exception:
+            pass
                 
         frame = vehicle_frame_queue.get()
         print("Vehicle worker received frame")
@@ -333,6 +209,10 @@ def run_vehicle_entry_logic(vehicle_frame_queue, entry_id_queue, person_data_que
                 if embedding is not None:
                     tracked_vehicles[track_id]["embeddings"].append(embedding)
                     
+                print("Current employee =", current_employee_id)
+                print("Current visit =", current_visit_id)
+                print("Embeddings =", len(tracked_vehicles[track_id]["embeddings"]))    
+                    
                 if len(tracked_vehicles[track_id]["embeddings"]) >= MIN_EMBEDDINGS_TO_SAVE:
                     mean_embedding = np.mean(tracked_vehicles[track_id]["embeddings"], axis=0)
                     norm = np.linalg.norm(mean_embedding)
@@ -343,6 +223,29 @@ def run_vehicle_entry_logic(vehicle_frame_queue, entry_id_queue, person_data_que
                     
                     try:
                         if current_employee_id and current_visit_id:
+                            print(
+                                "Saving vehicle:",
+                                current_employee_id,
+                                current_visit_id,
+                                track_id
+                            )
+                            
+                            print("Calling save_vehicle_entry_record")
+                            if not current_employee_id:
+                                print("NO EMPLOYEE ID")
+                                continue
+                            
+                            if not current_visit_id:
+                                print("NO VISIT ID")
+                                continue 
+                            
+                            print(
+                                "ABOUT TO SAVE VEHICLE ENTRY RECORD:",
+                                current_employee_id,
+                                current_visit_id,
+                                len(tracked_vehicles[track_id]["embeddings"]),
+                            )
+                            
                             entry_id = save_vehicle_entry_record(
                                 employee_id=current_employee_id,
                                 visit_id=current_visit_id,
@@ -351,11 +254,17 @@ def run_vehicle_entry_logic(vehicle_frame_queue, entry_id_queue, person_data_que
                                 plate_number=None,
                                 camera_id=camera_id,
                             )
+                            print("Returned entry_id =", entry_id)
                         
                                                 
                         if entry_id:
+                            print("PUSHING ENTRY ID TO PLATE:", entry_id)
                             tracked_vehicles[track_id]["saved"] = True
                             entry_id_queue.put(entry_id)
+                            print(
+                                "QUEUE OBJECT IN VEHICLE: ", id(entry_id_queue)
+                            )
+                            print("PUT COMPLETE:", entry_id)
                             logger.info(f"Saved vehicle entry record with ID: {entry_id}")
                             logger.info("Saved vehicle entry record for detected vehicle (class=%s)", results.names[cls_indices[idx]])
                     except Exception as exc:

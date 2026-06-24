@@ -15,7 +15,8 @@ from database import get_active_vehicle_records, complete_visit, save_exit_recor
 
 def start_exit_monitoring():
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.35.22%20PM.mp4?updatedAt=1782212509538")
+    print("Opened: ", cap.isOpened())
 
     CACHE_REFRESH_INTERVAL = 5 
     SESSION_TIMEOUT = 10
@@ -32,13 +33,21 @@ def start_exit_monitoring():
             last_cache_refresh = time.time()
             
         ret, frame = cap.read()
+        print("Frame Read: ", ret)
         if not ret:
-            continue
+            print("Video Finished")
+            break
         
         face_result = verify_face(frame)
         vehicle_result = verify_vehicle(frame, active_vehicles_records)
         plate_result = verify_plate(frame, active_vehicles_records)
         
+        print("FACE:", face_result)
+        print("VEHICLE:", vehicle_result)
+        print("PLATE:", plate_result)
+        
+        start = time.time()
+        print("Frame processing", time.time() - start)
         if (
             face_result and
             face_result.get("verified") and
@@ -104,6 +113,7 @@ def start_exit_monitoring():
             
             
         for visit_id, data in list(session_buffer.items()):
+            print(session_buffer)
             if (
                 data["face"] is not None and
                 data["vehicle"] is not None and
@@ -129,6 +139,8 @@ def start_exit_monitoring():
                     try:
                         processed_visits.add(matched_visit)
                         
+                        print("CALLING save_exit_record")
+                        
                         save_exit_record(
                             visit_id=matched_visit,
                             employee_id=data["face"].get("employee_id"),
@@ -141,6 +153,8 @@ def start_exit_monitoring():
                             gate_opened=True,
                             camera_id="exit_gate_cam"
                         )
+                        
+                        print("CALLING complete_visit")
                         complete_visit(matched_visit)
                     
                     except Exception as e:

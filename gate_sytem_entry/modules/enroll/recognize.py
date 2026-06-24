@@ -8,6 +8,8 @@ import requests
 import sys
 import os
 
+from collections import Counter, deque
+
 # This line finds the path to your project root (gate_sytem_entry/) 
 # and adds it to Python's system path.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -17,13 +19,16 @@ from database import get_all_employee_embeddings
 from modules.enroll.enroll import get_face_app
 from database import (
     get_all_employee_embeddings,
-    save_recognition_event
+    save_recognition_event,
+    get_active_visit_id,
+    create_visit_record
 )
 from modules.enroll.enroll import get_face_app
 
-MATCH_THRESHOLD = 0.40
-FRAME_SKIP = 2
-RECOGNITION_COOLDOWN = 60  # seconds
+MATCH_THRESHOLD = 0.60
+FRAME_SKIP = 1
+RECOGNITION_COOLDOWN = 3  # seconds
+
 
 
 def _load_known_embeddings():
@@ -71,6 +76,11 @@ def run_person_logic(
 
     frame_count = 0
     last_seen = {}
+    
+    recognition_votes = Counter()
+    recognition_window = deque()
+    VOTE_THRESHOLD = 2
+    WINDOW_SIZE = 10
 
     print("Person recognition worker started")
 
@@ -125,6 +135,19 @@ def run_person_logic(
 
             if best_match_score <= MATCH_THRESHOLD:
                 continue
+            
+            recognition_window.append(best_match_id)
+            recognition_votes[best_match_id] += 1
+
+            if len(recognition_window) > WINDOW_SIZE:
+                old = recognition_window.popleft()
+                recognition_votes[old] -= 1
+
+                if recognition_votes[old] <= 0:
+                    del recognition_votes[old]
+
+            if recognition_votes[best_match_id] < VOTE_THRESHOLD:
+                continue
 
             current_time = (
                 cv2.getTickCount()
@@ -150,6 +173,11 @@ def run_person_logic(
                 int,
                 face.bbox
             )
+            
+            width = x2 - x1
+            height = y2 - y1
+            
+            print(width, height)
 
             print(
                 f"Recognized employee "
@@ -166,18 +194,32 @@ def run_person_logic(
                 camera_type="ENTRY"
             )
 
+            visit_id = get_active_visit_id(best_match_id)
+            print("ACTIVE VISIT: ", visit_id)
+
+            if visit_id is None:
+                visit_id = create_visit_record(best_match_id)
+            
+            print("FINAL VISIT: ", visit_id)
+                
+            print(
+                f"SENDING PERSON CONTEXT -> "
+                f"emp={best_match_id}, "
+                f"visit={visit_id}"
+            )
+            
+            print("PERSON QUEUE ID =", id(person_data_queue))
+            print("PUTTING INTO PERSON QUEUE")
+
             person_data_queue.put({
                 "employee_id": best_match_id,
-                "score": float(
-                    best_match_score
-                ),
-                "bbox": [
-                    x1,
-                    y1,
-                    x2,
-                    y2
-                ]
+                "visit_id": visit_id
             })
+            
+            print("PUT COMPLETED")
+
+            recognition_votes.clear()
+            recognition_window.clear()
                 
 
 

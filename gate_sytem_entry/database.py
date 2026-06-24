@@ -446,8 +446,15 @@ def log_plate_recognition(entry_id: int, plate_number: str):
                 UPDATE entry_records 
                 SET plate_number = %s
                 WHERE id = %s
+                RETURNING id
                 """,
                 (plate_number, entry_id)
+            )
+            updated = cursor.fetchone()
+            print("Updated entry ID: ", updated)
+            print(
+                f"Updated entry {entry_id}"
+                f"with plate {plate_number} "
             )
             conn.commit()
             logger.info(f"Successfully updated entry {entry_id} with plate: {plate_number}")
@@ -696,3 +703,44 @@ def save_exit_record(visit_id, employee_id, vehicle_embedding, vehicle_class, pl
         raise
     finally:
         if conn: conn.close()
+        
+
+import uuid     
+        
+def create_visit_record(employee_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    visit_id = str(uuid.uuid4())
+
+    cursor.execute(
+        """
+        INSERT INTO employee_visits
+        (
+            visit_id,
+            employee_id,
+            entry_time,
+            expected_expiry,
+            status
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            NOW(),
+            NOW() + INTERVAL '9 hours',
+            'ACTIVE'
+        )
+        RETURNING visit_id
+        """,
+        (visit_id, employee_id)
+    )
+
+    visit_id = cursor.fetchone()[0]
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return visit_id

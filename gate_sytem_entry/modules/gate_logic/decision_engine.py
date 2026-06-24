@@ -7,6 +7,12 @@ def calculate_gate_score(face_result, vehicle_result, plate_result):
     vehicle_visit = vehicle_result.get("visit_id")
     plate_visit = plate_result.get("visit_id")
     
+    print(
+        face_visit, 
+        vehicle_visit,
+        plate_visit,
+    )
+    
     if not (face_visit and vehicle_visit and plate_visit):
         return False, 0.0, None
     

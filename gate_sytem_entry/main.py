@@ -25,7 +25,7 @@ if __name__ == "__main__":
     p1.start()
     p2.start()
     
-    cap = cv2.VideoCapture('https://drive.google.com/uc?id=1_z8af-SSHqrI1XUjR3EzXWnJP3E2IO9p')
+    cap = cv2.VideoCapture('https://ik.imagekit.io/v4klltgrj/entry_1.mp4?updatedAt=1781720129816')
     try:
         while True:
             ret, frame = cap.read()

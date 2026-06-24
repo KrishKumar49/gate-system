@@ -8,9 +8,13 @@ from modules.enroll.plate_recognition import run_plate_logic
 
 
 def start_gate_monitoring():
+    print("START METHOD: ", multiprocessing.get_all_start_methods())
 
     person_data_queue = multiprocessing.Queue(5)
-    entry_id_queue = multiprocessing.Queue(10)
+    # entry_id_queue = multiprocessing.Queue(10)
+    plate_entry_queue = multiprocessing.Queue(10)
+    
+    # plate_entry_queue.put("TEST123")
 
     person_frame_queue = multiprocessing.Queue(10)
     vehicle_frame_queue = multiprocessing.Queue(10)
@@ -28,16 +32,18 @@ def start_gate_monitoring():
 
     p1 = multiprocessing.Process(
         target=run_vehicle_entry_logic,
-        args=(vehicle_frame_queue,
-              entry_id_queue,
-              person_data_queue,
-              vehicle_ready)
+        args=(
+            vehicle_frame_queue,
+            plate_entry_queue,
+            person_data_queue,
+            vehicle_ready
+            )
     )
 
     p2 = multiprocessing.Process(
         target=run_plate_logic,
         args=(plate_frame_queue,
-              entry_id_queue,
+              plate_entry_queue,
               plate_ready)
     )
 
@@ -45,11 +51,11 @@ def start_gate_monitoring():
     p1.start()
     p2.start()
     # wait for workers to signal readiness (with a timeout)
-    all_ready = person_ready.wait(timeout=15) and vehicle_ready.wait(timeout=15) and plate_ready.wait(timeout=15)
+    all_ready = person_ready.wait(timeout=120) and vehicle_ready.wait(timeout=120) and plate_ready.wait(timeout=120)
     if not all_ready:
         print("Warning: not all workers signalled ready within timeout")
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.34.52%20PM.mp4")
     print("Video opened:", cap.isOpened())
     try:
         while True:
