@@ -38,6 +38,7 @@ def start_exit_monitoring():
             print("Video Finished")
             break
         
+        
         face_result = verify_face(frame)
         vehicle_result = verify_vehicle(frame, active_vehicles_records)
         plate_result = verify_plate(frame, active_vehicles_records)
@@ -112,8 +113,18 @@ def start_exit_monitoring():
             del session_buffer[visit_id]
             
             
+        print("SESSION BUFFER =", session_buffer)
         for visit_id, data in list(session_buffer.items()):
             print(session_buffer)
+            
+            print(
+                "SESSION STATUS:",
+                visit_id,
+                data["face"] is not None,
+                data["vehicle"] is not None,
+                data["plate"] is not None,
+            )
+            
             if (
                 data["face"] is not None and
                 data["vehicle"] is not None and
@@ -153,6 +164,10 @@ def start_exit_monitoring():
                             gate_opened=True,
                             camera_id="exit_gate_cam"
                         )
+                        
+                        print("FACE RESULT: ", face_result)
+                        print("VEHICLE RESULT: ", vehicle_result)
+                        print("PLATE RESULT: ", plate_result)
                         
                         print("CALLING complete_visit")
                         complete_visit(matched_visit)

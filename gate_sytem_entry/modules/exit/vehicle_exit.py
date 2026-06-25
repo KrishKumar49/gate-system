@@ -12,7 +12,7 @@ from modules.v_e_local.vehicle_entry import detector, get_vehicle_embedding
 
 MATCH_THRESHOLD = 0.70
 TRACK_TIMEOUT = 15 
-MATCH_THRESHOLD = 0.70
+MATCH_THRESHOLD = 0.40
 
 TRACK_CACHE = {}  # {track_id: {"last_seen": timestamp, "result": {...}}}
 
@@ -114,6 +114,13 @@ def verify_vehicle(frame, active_vehicles):
             
             
             similarity = np.dot(live_embedding, stored_emb)
+            print(
+                "VEHICLE MTCH",
+                employee_id,
+                visit_id,
+                similarity,
+            )
+            
             if similarity > best_score:
                 best_score = similarity
                 best_match = {

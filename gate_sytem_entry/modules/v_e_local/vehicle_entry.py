@@ -142,6 +142,7 @@ def run_vehicle_entry_logic(
     
     current_employee_id = None
     current_visit_id = None
+    vehicle_saved = False
     
     print("VEHICLE QUEUE OBJECT ", entry_id_queue)
     
@@ -193,8 +194,8 @@ def run_vehicle_entry_logic(
                 if class_name != "motorcycle": 
                     continue
                 
-                if track_id in tracked_vehicles and tracked_vehicles[track_id]["saved"]:
-                    continue
+                # if track_id in tracked_vehicles and tracked_vehicles[track_id]["saved"]:
+                #     continue
                 
                 if track_id not in tracked_vehicles:
                     tracked_vehicles[track_id] = {"embeddings": [], "saved": False}
@@ -213,7 +214,7 @@ def run_vehicle_entry_logic(
                 print("Current visit =", current_visit_id)
                 print("Embeddings =", len(tracked_vehicles[track_id]["embeddings"]))    
                     
-                if len(tracked_vehicles[track_id]["embeddings"]) >= MIN_EMBEDDINGS_TO_SAVE:
+                if len(tracked_vehicles[track_id]["embeddings"]) >= MIN_EMBEDDINGS_TO_SAVE and not vehicle_saved:
                     mean_embedding = np.mean(tracked_vehicles[track_id]["embeddings"], axis=0)
                     norm = np.linalg.norm(mean_embedding)
                     if norm == 0:
@@ -258,8 +259,11 @@ def run_vehicle_entry_logic(
                         
                                                 
                         if entry_id:
+                            vehicle_saved = True
                             print("PUSHING ENTRY ID TO PLATE:", entry_id)
-                            tracked_vehicles[track_id]["saved"] = True
+                            # tracked_vehicles[track_id]["saved"] = True
+                            
+                            
                             entry_id_queue.put(entry_id)
                             print(
                                 "QUEUE OBJECT IN VEHICLE: ", id(entry_id_queue)

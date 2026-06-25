@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from database import get_active_employee_embeddings
 from modules.enroll.enroll import get_face_app
 
-MATCH_THRESHOLD = 0.80
+MATCH_THRESHOLD = 0.40
 
 def verify_face(frame):
     model = get_face_app()
@@ -39,6 +39,14 @@ def verify_face(frame):
             best_score = similarity
             best_employee = employee_id
             best_visit = visit_id
+            
+    
+    print(
+        "FACE SCORE",
+        best_employee,
+        best_visit,
+        best_score
+    )
             
             
     if best_score > MATCH_THRESHOLD:

@@ -582,7 +582,9 @@ def get_active_vehicle_records():
         FROM entry_records er
         INNER JOIN employee_visits ev
             ON er.visit_id = ev.visit_id
-        WHERE ev.status = 'ACTIVE'
+        WHERE
+            ev.status = 'ACTIVE'
+            AND er.plate_number IS NOT NULL
         """
     )
 
@@ -744,3 +746,35 @@ def create_visit_record(employee_id):
     conn.close()
 
     return visit_id
+
+
+
+def update_latest_vehicle_plate(plate_number):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE entry_records
+        SET plate_number = %s
+        WHERE id = (
+            SELECT id
+            FROM entry_records
+            ORDER BY created_at DESC
+            LIMIT 1
+        )
+        RETURNING id
+        """,
+        (plate_number,)
+    )
+
+    row = cursor.fetchone()
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    if row:
+        return row[0]
+
+    return None

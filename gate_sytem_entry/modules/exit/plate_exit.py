@@ -79,7 +79,10 @@ def verify_plate(frame, active_vehicle_records):
         key=plate_votes.get
     )
     
-    if plate_votes[best_plate] < 3:
+    print("BEST PLATE =", best_plate)
+    print("VOTES =", plate_votes[best_plate])
+    
+    if plate_votes[best_plate] < 2:
         return {
             "verified": False,
             "score": 0.0,
@@ -108,7 +111,7 @@ def verify_plate(frame, active_vehicle_records):
                 "plate_number": stored_plate
             }
 
-        if score >= 0.9 and plate_votes[best_plate] >= 3:
+        if score >= 0.7 and plate_votes[best_plate] >= 2:
             return {
                 "verified": True,
                 "employee_id": employee_id,

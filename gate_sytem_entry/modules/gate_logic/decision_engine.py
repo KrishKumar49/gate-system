@@ -13,29 +13,26 @@ def calculate_gate_score(face_result, vehicle_result, plate_result):
         plate_visit,
     )
     
-    if not (face_visit and vehicle_visit and plate_visit):
+    valid_visits = [v for v in [face_visit, vehicle_visit, plate_visit] if v is not None]
+    
+    if not valid_visits:
         return False, 0.0, None
     
-    if not (face_visit == vehicle_visit == plate_visit):
+    if len(set(valid_visits)) > 1:
         return False, 0.0, None
     
+    consensus_visit = valid_visits[0]
     
-
-    if face_score is None:
-        face_score = 0.0
-    if vehicle_score is None:
-        vehicle_score = 0.0
-    if plate_score is None:
-        plate_score = 0.0
+    face_s = face_score if face_result.get("verified") else 0.0
+    vehicle_s = vehicle_score if vehicle_result.get("verified") else 0.0
+    plate_s = plate_score if plate_result.get("verified") else 0.0
     
-    # Weighted average with more emphasis on face recognition
-    total_score = (face_score * 0.5) + (vehicle_score * 0.3) + (plate_score * 0.2)
+    total_score = (face_s * 0.5) + (vehicle_s * 0.3) + (plate_s * 0.2)
     
-    if total_score >= 0.85:
-        return True, total_score, face_visit
+    if total_score >= 0.55:
+        return True, total_score, consensus_visit
     
-    elif face_score >= 0.9 and vehicle_score >= 0.8:
-        return True, total_score, face_visit
+    if face_s >= 0.8 and plate_s >= 0.7:
+        return True, total_score, consensus_visit
     
-    else:
-        return False, total_score, face_visit
+    return False, total_score, consensus_visit
