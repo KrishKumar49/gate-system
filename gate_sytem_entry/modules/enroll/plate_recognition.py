@@ -165,7 +165,7 @@ VOTING_WINDOW_SIZE = 10
 from queue import Empty
 
 
-def run_plate_logic(frame_queue, entry_id_queue, ready_event=None):
+def run_plate_logic(frame_queue, entry_id_queue, vehicle_done_queue, ready_event=None):
     print("plate recognition worker started")
     # signal readiness to the parent process
     plate_votes = Counter()
@@ -268,6 +268,9 @@ def run_plate_logic(frame_queue, entry_id_queue, ready_event=None):
                         current_entry_id,
                         best_plate
                     )
+                    
+                    vehicle_done_queue.put(current_entry_id)
+                    
                     
 
                     print(

@@ -116,6 +116,7 @@ def run_vehicle_entry_logic(
     vehicle_frame_queue, 
     entry_id_queue, 
     person_data_queue,
+    vehicle_done_queue,
     ready_event=None, 
     # employee_id=None, 
     # visit_id=None, 
@@ -178,7 +179,21 @@ def run_vehicle_entry_logic(
         except Exception:
             pass
                 
+        try:
+            finished_entry = vehicle_done_queue.get_nowait()
+            print("Vehicle completed:", finished_entry)
+            current_employee_id = None
+            current_visit_id = None
+            vehicle_saved = False
+            
+            tracked_vehicles.clear()
+            detector.predictor = None
+            
+        except Exception:
+            pass
+        
         frame = vehicle_frame_queue.get()
+        
         print("Vehicle worker received frame")
         if frame is None: break
         

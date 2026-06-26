@@ -26,6 +26,7 @@ def start_gate_monitoring():
     person_frame_queue = multiprocessing.Queue(10)
     vehicle_frame_queue = multiprocessing.Queue(10)
     plate_frame_queue = multiprocessing.Queue(10)
+    vehicle_done_queue = multiprocessing.Queue(10)
 
     # readiness events: workers set these once their models/assets are loaded
     person_ready = multiprocessing.Event()
@@ -43,7 +44,8 @@ def start_gate_monitoring():
             vehicle_frame_queue,
             plate_entry_queue,
             person_data_queue,
-            vehicle_ready
+            vehicle_done_queue,
+            vehicle_ready,
             )
     )
 
@@ -51,7 +53,9 @@ def start_gate_monitoring():
         target=run_plate_logic,
         args=(plate_frame_queue,
               plate_entry_queue,
-              plate_ready)
+              vehicle_done_queue,
+              plate_ready,
+            )
     )
 
     p0.start()
