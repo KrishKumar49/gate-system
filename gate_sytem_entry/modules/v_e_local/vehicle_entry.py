@@ -123,9 +123,10 @@ def run_vehicle_entry_logic(
 ):
     print("VEHICLE WORKER STARTED")
     print("VEHICLE ENTRY QUEUE ID: ", id(person_data_queue))
-    if ready_event is not None:
-        ready_event.set()
-        print("Vehicle worker ready")
+    logger.info(
+        f"VEHICLE PROCESS {os.getpid()} - QUEUE {id(person_data_queue)}",
+        
+    )
     
     logger.info("Starting vehicle entry logic")
     # resolved_visit_id = _resolve_visit_id(employee_id, visit_id)
@@ -144,7 +145,12 @@ def run_vehicle_entry_logic(
     current_visit_id = None
     vehicle_saved = False
     
+    
     print("VEHICLE QUEUE OBJECT ", entry_id_queue)
+    
+    if ready_event is not None:
+        ready_event.set()
+        print("Vehicle worker ready")
     
     while True:
         try:
@@ -154,11 +160,12 @@ def run_vehicle_entry_logic(
                     print("QUEUE SIZE =", person_data_queue.qsize())
                     
                     data = person_data_queue.get(timeout=1)
+                    print("QUEUE SIZE BEFORE GET =", person_data_queue.qsize())
                     print("RAW DATA RECEIVED =", data)
                     print("WAITING FOR PERSON DATA")
                     
-                    current_employee_id = data.get("employee_id")
-                    current_visit_id = data.get("visit_id")
+                    current_employee_id = data["employee_id"]
+                    current_visit_id = data["visit_id"]
                     
                     print(
                         f"RECEIVED PERSON CONTEXT -> "

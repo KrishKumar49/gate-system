@@ -450,14 +450,14 @@ def log_plate_recognition(entry_id: int, plate_number: str):
                 """,
                 (plate_number, entry_id)
             )
-            updated = cursor.fetchone()
-            print("Updated entry ID: ", updated)
-            print(
-                f"Updated entry {entry_id}"
-                f"with plate {plate_number} "
-            )
             conn.commit()
-            logger.info(f"Successfully updated entry {entry_id} with plate: {plate_number}")
+            updated = cursor.fetchone()
+            if updated:
+                entry_id_val = updated[0]
+                print("Updated entry ID: ", entry_id_val)
+                print(f"Successfully updated entry {entry_id_val} with plate: {plate_number}")
+            return None
+            
     except Exception as e:
         conn.rollback()
         logger.error(f"Failed to update entry {entry_id} with plate {plate_number}: {e}")

@@ -10,6 +10,7 @@ import os
 
 from collections import Counter, deque
 
+import logging
 # This line finds the path to your project root (gate_sytem_entry/) 
 # and adds it to Python's system path.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -64,6 +65,9 @@ def run_person_logic(
         "Known employees:",
         known_embeddings.keys()
     )
+    logging.info(
+        f"PERSON PROCESS {os.getpid()} - QUEUE {id(person_data_queue)}"
+    )
 
     for emp, embs in known_embeddings.items():
         print(emp, len(embs))
@@ -76,6 +80,7 @@ def run_person_logic(
 
     frame_count = 0
     last_seen = {}
+    active_people = {}
     
     recognition_votes = Counter()
     recognition_window = deque()
@@ -136,6 +141,8 @@ def run_person_logic(
             if best_match_score <= MATCH_THRESHOLD:
                 continue
             
+            
+            
             recognition_window.append(best_match_id)
             recognition_votes[best_match_id] += 1
 
@@ -152,6 +159,11 @@ def run_person_logic(
             current_time = (
                 cv2.getTickCount()
                 / cv2.getTickFrequency()
+            )
+            
+            print(
+                "NOW =", current_time,
+                "LAST SEEN =", last_seen.get(best_match_id, None)
             )
 
             if (
@@ -216,7 +228,10 @@ def run_person_logic(
                 "visit_id": visit_id
             })
             
+            active_people[best_match_id] = True
+            
             print("PUT COMPLETED")
+            print("QUEUE SIZE AFTER PUT =", person_data_queue.qsize())
 
             recognition_votes.clear()
             recognition_window.clear()

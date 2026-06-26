@@ -2,6 +2,10 @@ import multiprocessing
 import cv2
 import time
 
+import os
+
+import logging
+
 from modules.v_e_local.vehicle_entry import run_vehicle_entry_logic
 from modules.enroll.recognize import run_person_logic
 from modules.enroll.plate_recognition import run_plate_logic
@@ -11,6 +15,9 @@ def start_gate_monitoring():
     print("START METHOD: ", multiprocessing.get_all_start_methods())
 
     person_data_queue = multiprocessing.Queue(5)
+    logging.info(
+        f"MAIN PROCESS {os.getpid()} - QUEUE {id(person_data_queue)}"
+    )
     # entry_id_queue = multiprocessing.Queue(10)
     plate_entry_queue = multiprocessing.Queue(10)
     

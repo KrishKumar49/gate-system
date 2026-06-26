@@ -35,6 +35,7 @@ def stop_monitoring():
     global monitor_process
     if monitor_process is not None and monitor_process.is_alive():
         monitor_process.terminate()
+        monitor_process.join()
         monitor_process = None
     return {"status": "Monitoring stopped"}
 
