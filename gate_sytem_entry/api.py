@@ -9,7 +9,6 @@ from database import delete_employee
 
 from monitor_exit import start_exit_monitoring as run_exit_monitoring
 
-exit_monitor_process = multiprocessing.Process(target=run_exit_monitoring)
 
 app = FastAPI()
 
@@ -82,8 +81,18 @@ def stop_exit_monitoring():
     global exit_monitor_process
     if exit_monitor_process is not None and exit_monitor_process.is_alive():
         exit_monitor_process.terminate()
+        exit_monitor_process.join()
         exit_monitor_process = None
     return {"status": "Exit monitoring stopped"}
+
+
+@app.get("/exit_monitoring_status")
+def get_exit_monitoring_status():
+    global exit_monitor_process
+    if exit_monitor_process is not None and exit_monitor_process.is_alive():
+        return {"status": "Exit monitoring is running"}
+    else:
+        return {"status": "Exit monitoring is stopped"}
 
 
 if __name__ == "__main__":
