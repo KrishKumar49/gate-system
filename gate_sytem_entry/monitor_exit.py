@@ -15,7 +15,7 @@ from database import get_active_vehicle_records, complete_visit, save_exit_recor
 
 def start_exit_monitoring():
 
-    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.34.52%20PM.mp4")
+    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.35.22%20PM.mp4?updatedAt=1782212509538")
     print("Opened: ", cap.isOpened())
 
     CACHE_REFRESH_INTERVAL = 5 

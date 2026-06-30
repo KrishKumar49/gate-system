@@ -66,7 +66,7 @@ def start_gate_monitoring():
     if not all_ready:
         print("Warning: not all workers signalled ready within timeout")
 
-    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.34.52%20PM.mp4")
+    cap = cv2.VideoCapture("https://ik.imagekit.io/6f8hdxg1w/WhatsApp%20Video%202026-06-21%20at%2011.35.22%20PM.mp4?updatedAt=1782212509538")
     print("Video opened:", cap.isOpened())
     try:
         while True:

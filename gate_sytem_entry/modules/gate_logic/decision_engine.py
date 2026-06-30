@@ -32,7 +32,10 @@ def calculate_gate_score(face_result, vehicle_result, plate_result):
     if total_score >= 0.55:
         return True, total_score, consensus_visit
     
-    if face_s >= 0.8 and plate_s >= 0.7:
+    if face_s >= 0.5 and plate_s >= 0.7:
+        return True, total_score, consensus_visit
+    
+    if face_s >= 0.5 and vehicle_s >= 0.6:
         return True, total_score, consensus_visit
     
     return False, total_score, consensus_visit

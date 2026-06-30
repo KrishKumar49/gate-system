@@ -26,7 +26,7 @@ from database import (
 )
 from modules.enroll.enroll import get_face_app
 
-MATCH_THRESHOLD = 0.60
+MATCH_THRESHOLD = 0.44
 FRAME_SKIP = 1
 RECOGNITION_COOLDOWN = 3  # seconds
 
